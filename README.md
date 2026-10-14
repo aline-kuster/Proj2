@@ -15,10 +15,11 @@ quantizacao-cores/
 │   ├── metricas.py         # BMU, quantização, erro de quantização, erro topológico, PSNR
 │   └── graficos.py         # comparações, paletas, mapa do SOM, rede do GNG, curvas
 ├── data/
-│   ├── input/              # imagens de entrada (por_do_sol, campo, praia, tintas)
+│   ├── input/              # imagens de entrada (por_do_sol, campo, praia, tintas, arara)
 │   └── output/<imagem>/    # imagens quantizadas (som/, gng/) + resultados.csv/.json
 ├── report/
 │   ├── relatorio.tex       # relatório (LaTeX)
+│   ├── gerar_resumo.py     # tabelas-resumo e gráficos comparativos (todas as imagens)
 │   ├── relatorio.pdf
 │   ├── figures/<imagem>/   # figuras geradas pelo main.py
 │   └── tabelas/            # tabelas .tex geradas pelo main.py
@@ -31,7 +32,7 @@ quantizacao-cores/
 
 ```bash
 uv sync
-uv run main.py                                  # roda as 4 imagens (por_do_sol, campo, praia, tintas)
+uv run main.py                                  # roda as 5 imagens (por_do_sol, campo, praia, tintas, arara)
                                                 # e ao final abre as imagens reconstruídas
 uv run main.py --imagem data/input/praia.jpg    # só uma imagem
 uv run main.py --modelo som                     # só SOM (ou --modelo gng)
@@ -39,6 +40,12 @@ uv run main.py --som-impl propria               # SOM com a implementação pró
 uv run main.py --rapido                         # menos iterações (teste rápido)
 uv run main.py --max-lado 0                     # usa todos os pixels da imagem original
 uv run main.py --sem-mostrar                    # não abre as janelas (só salva os arquivos)
+```
+
+Depois de rodar as imagens, gere as tabelas-resumo e os gráficos comparativos do relatório:
+
+```bash
+uv run report/gerar_resumo.py
 ```
 
 Para gerar o PDF do relatório: `cd report && latexmk -pdf relatorio.tex`.
