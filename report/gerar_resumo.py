@@ -5,8 +5,7 @@ Lê data/output/<imagem>/resultados.csv (gerados pelo main.py) e cria:
   report/tabelas/gng_resumo.tex        melhor config. de cada rede do GNG, por imagem + média
   report/tabelas/hiperparametros.tex   efeito das configurações A/B/C (médias)
   report/tabelas/comparacao.tex        PSNR e erro topológico SOM x GNG
-  report/figures/som_curvas.png        PSNR, EQ, ET e cores usadas x tamanho da grade
-  report/figures/gng_curvas.png        idem para o GNG
+  report/figures/comparacao_media.png  PSNR e erro topológico médios, SOM x GNG (barras = mín./máx.)
 
 Uso (depois de rodar o main.py):  uv run report/gerar_resumo.py
 """
@@ -115,25 +114,25 @@ def tabela_comparacao(dados):
     (TABELAS / "comparacao.tex").write_text("\n".join(L) + "\n", encoding="utf-8")
 
 
-def grafico_curvas(dados, modelo):
-    metricas = [("psnr", "PSNR (dB)"), ("erro_quantizacao", "Erro de quantização"),
-                ("erro_topologico", "Erro topológico"), ("cores_usadas", "Cores usadas")]
-    fig, axs = plt.subplots(2, 2, figsize=(10, 7))
-    x = [16, 64, 256]
-    for ax, (chave, titulo) in zip(axs.ravel(), metricas):
-        for img in IMAGENS:
-            y = [melhor(dados, img, modelo, t)[chave] for t in TAM[modelo]]
-            ax.plot(x, y, marker="o", label=img)
-        ax.set_xscale("log", base=2)
+def grafico_comparacao(dados):
+    """Média das 5 imagens: PSNR e erro topológico do SOM x GNG em função do tamanho da rede."""
+    x = np.arange(3)
+    fig, axs = plt.subplots(1, 2, figsize=(10, 3.8))
+    for ax, chave, titulo in ((axs[0], "psnr", "PSNR médio (dB) — maior é melhor"),
+                              (axs[1], "erro_topologico", "Erro topológico médio — menor é melhor")):
+        for modelo, cor in (("SOM", "#c0392b"), ("GNG", "#2471a3")):
+            vals = np.array([[melhor(dados, img, modelo, t)[chave] for t in TAM[modelo]] for img in IMAGENS])
+            ax.errorbar(x + (-0.05 if modelo == "SOM" else 0.05), vals.mean(0),
+                        yerr=[vals.mean(0) - vals.min(0), vals.max(0) - vals.mean(0)],
+                        marker="o", capsize=4, color=cor, label=modelo)
         ax.set_xticks(x)
-        ax.set_xticklabels(ROT[modelo])
-        ax.set_title(titulo)
-        ax.set_xlabel("Grade" if modelo == "SOM" else "Neurônios")
+        ax.set_xticklabels(["16 (4x4)", "64 (8x8)", "256 (16x16)"])
+        ax.set_xlabel("Neurônios")
+        ax.set_title(titulo, fontsize=10)
         ax.grid(alpha=0.3)
-    h, l = axs[0, 0].get_legend_handles_labels()
-    fig.legend(h, l, loc="lower center", ncol=5, frameon=False)
-    fig.tight_layout(rect=(0, 0.05, 1, 1))
-    fig.savefig(FIGURAS / f"{modelo.lower()}_curvas.png", dpi=150)
+        ax.legend()
+    fig.tight_layout()
+    fig.savefig(FIGURAS / "comparacao_media.png", dpi=150)
     plt.close(fig)
 
 
@@ -143,7 +142,7 @@ def main():
     dados = carregar()
     for modelo in ("SOM", "GNG"):
         tabela_resumo(dados, modelo)
-        grafico_curvas(dados, modelo)
+    grafico_comparacao(dados)
     tabela_hiperparametros(dados)
     tabela_comparacao(dados)
     print("Tabelas em report/tabelas/ e gráficos em report/figures/")

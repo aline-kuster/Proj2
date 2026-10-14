@@ -10,6 +10,8 @@
 \usepackage[margin=2.2cm]{geometry}
 \usepackage[hidelinks]{hyperref}
 
+\graphicspath{{figures/por_do_sol/}{./}}
+
 \begin{document}
 
 \begin{center}
@@ -21,19 +23,18 @@
 \vspace{-4pt}
 \noindent\rule{\linewidth}{0.4pt}
 
-\subsection*{Configuração Experimental}
+\section{Objetivo}
+Reduzir drasticamente a paleta de cores de uma imagem (compressão) usando aprendizado
+competitivo, comparando o SOM (topologia fixa em uma grade 2D) com o GNG (topologia que cresce e
+se adapta aos dados), e avaliando as redes pelo erro de quantização e pelo erro topológico.
 
-O objetivo é reduzir a paleta de cores de uma imagem (compressão) usando dois modelos de
-aprendizado competitivo não supervisionado: o \emph{Self-Organizing Map} (SOM) e o
-\emph{Growing Neural Gas} (GNG). Cada pixel é tratado como um vetor $\mathbf{x}=(R,G,B)\in[0,1]^3$;
-ao final do treino, os pesos dos neurônios formam a paleta, e a imagem é reconstruída trocando
-cada pixel pela cor do neurônio vencedor (BMU):
-\begin{equation}
-c(\mathbf{x}) = \arg\min_i \|\mathbf{x}-\mathbf{w}_i\|_2 .
-\end{equation}
+\section{Metodologia}
 
-Foram usadas cinco imagens (diretório \texttt{data/input/}), redimensionadas com filtro Lanczos
-para no máximo $450$ pixels de lado ($\approx 135\,000$ pixels cada), com semente aleatória fixa em 42:
+\subsection{Extração}
+Cada imagem é carregada em RGB e redimensionada (filtro Lanczos, mantendo a proporção) para no
+máximo $450$ pixels de lado ($\approx 135\,000$ pixels). Todos os pixels são extraídos e
+normalizados, e cada pixel vira uma amostra $\mathbf{x} = (R, G, B) \in [0,1]^3$: a imagem passa
+a ser um conjunto de dados 3D. Foram usadas cinco imagens com distribuições de cor bem diferentes:
 
 \begin{table}[H]
 \centering\small
@@ -51,205 +52,195 @@ Imagem & Conteúdo & Cores distintas \\
 \caption{Imagens utilizadas.}
 \end{table}
 
-Foram avaliadas redes com $16$, $64$ e $256$ neurônios (no SOM, grades $4\times4$, $8\times8$ e
-$16\times16$), com quatro métricas:
-\begin{enumerate}
-  \item \textbf{Erro de Quantização (EQ):} distância média entre cada pixel e a cor do seu BMU;
-  \item \textbf{Erro Topológico (ET):} fração de pixels cujo 1º e 2º BMU \emph{não} são vizinhos
-        na rede (no SOM, adjacentes na grade; no GNG, ligados por aresta);
-  \item \textbf{PSNR (dB):} qualidade visual da imagem reconstruída, $10\log_{10}(255^2/\text{MSE})$;
-  \item \textbf{Cores usadas:} quantos neurônios viraram a cor de algum pixel.
-\end{enumerate}
+\subsection{Treinamento}
 
-\paragraph{Ajuste de hiperparâmetros.} Para cada tamanho de rede foram testadas três
-configurações (Tabela~\ref{tab:cfg}); nas tabelas e figuras a seguir é usada a de menor EQ.
+\paragraph{SOM.} Grades $4\times4$, $8\times8$ e $16\times16$, treinadas com a biblioteca
+\textbf{XPySom} por $100$ épocas, com pesos iniciais sorteados entre os pixels e vizinhança
+gaussiana cujo raio $\sigma$ decai exponencialmente de $\sigma_0$ até $\sigma_N$. A XPySom usa o
+\emph{batch SOM}, em que cada peso é substituído pela média dos pixels ponderada pela vizinhança;
+nessa conta a taxa de aprendizado se cancela, por isso o ajuste foi feito no raio $\sigma$. O
+projeto também inclui uma implementação própria do SOM online (\texttt{--som-impl propria}).
+
+\paragraph{GNG.} Implementação própria (Fritzke, 1995) com $16$, $64$ e $256$ neurônios. A rede
+começa com 2 neurônios; a cada pixel, o vencedor $s_1$ e seus vizinhos se movem em direção à
+amostra (taxas $\varepsilon_b$ e $\varepsilon_n$), a aresta $s_1$--$s_2$ é criada ou renovada e
+arestas mais velhas que $a_{\max}$ são removidas. A cada $\lambda$ iterações nasce um neurônio
+entre o de maior erro acumulado e seu vizinho de maior erro ($\alpha=0{,}5$, $d=0{,}995$). O treino
+dura 2 épocas ($\approx 270\,000$ iterações).
+
+\subsection{Ajuste de hiperparâmetros}
+Para cada tamanho de rede foram testadas três configurações; nos resultados é usada a de menor
+erro de quantização.
 
 \begin{table}[H]
 \centering\small
 \begin{tabular}{lll}
 \toprule
-Config. & SOM & GNG \\
+Config. & SOM (XPySom) & GNG \\
 \midrule
 A & $\sigma_0=L/2$, $\sigma_N=1{,}0$ & $\varepsilon_b=0{,}2$, $\varepsilon_n=0{,}006$, $\lambda=100$, $a_{\max}=50$ \\
 B & $\sigma_0=L/2$, $\sigma_N=0{,}5$ & $\varepsilon_b=0{,}05$, $\varepsilon_n=0{,}0006$, $\lambda=100$, $a_{\max}=50$ \\
 C & $\sigma_0=L/4$, $\sigma_N=1{,}0$ & $\varepsilon_b=0{,}2$, $\varepsilon_n=0{,}006$, $\lambda=300$, $a_{\max}=100$ \\
 \bottomrule
 \end{tabular}
-\caption{Configurações testadas ($L$ = lado da grade).}
+\caption{Configurações testadas ($L$ = lado da grade do SOM).}
 \label{tab:cfg}
 \end{table}
 
-\section*{1. Mapas Auto-Organizáveis (SOM)}
+\subsection{Inferência e reconstrução}
+Para cada pixel encontra-se o neurônio vencedor (BMU),
+$c(\mathbf{x}) = \arg\min_i \|\mathbf{x}-\mathbf{w}_i\|$, e a cor do pixel é substituída pelos
+pesos $\mathbf{w}_{c(\mathbf{x})}$. A matriz da imagem ($H \times W \times 3$) é então reconstruída,
+salva e exibida na tela.
 
-O SOM foi treinado com a biblioteca \emph{XPySom} por 100 épocas (todos os pixels a cada época),
-com pesos iniciais sorteados entre os pixels e vizinhança gaussiana cujo raio $\sigma$ decai
-exponencialmente de $\sigma_0$ até $\sigma_N$. A XPySom usa o \emph{batch SOM}, em que cada peso é
-substituído pela média dos pixels ponderada pela vizinhança; nessa conta a taxa de aprendizado
-se cancela, por isso o ajuste foi feito no raio $\sigma$. O projeto também traz uma implementação
-própria do SOM online (\texttt{--som-impl propria}).
+\subsection{Métricas}
+\begin{itemize}
+  \item \textbf{Erro de quantização (EQ):} distância média entre cada pixel e a cor do seu BMU.
+  \item \textbf{Erro topológico (ET):} fração de pixels cujo 1º e 2º BMU \emph{não} são vizinhos
+        na rede (no SOM, adjacentes na grade; no GNG, ligados por aresta).
+  \item \textbf{PSNR (dB):} qualidade visual da reconstrução, $10\log_{10}(255^2/\text{MSE})$.
+  \item \textbf{Cores usadas:} quantos neurônios viraram a cor de algum pixel.
+\end{itemize}
+
+\section{Resultados}
+
+As Tabelas~\ref{tab:som} e~\ref{tab:gng} mostram a melhor configuração de cada rede nas cinco
+imagens; a Figura~\ref{fig:comp} e a Tabela~\ref{tab:comp} comparam os dois modelos.
 
 \begin{table}[H]
 \centering\small
 \input{tabelas/som_resumo.tex}
-\caption{Métricas do SOM (melhor configuração de cada grade).}
+\caption{Resultados do SOM.}
 \label{tab:som}
 \end{table}
-
-Dobrar o lado da grade reduz o erro de quantização aproximadamente pela metade, e o PSNR médio
-sobe de $28{,}4$ dB (16 cores) para $34{,}4$ dB (64) e $39{,}5$ dB (256). Com 16 cores aparecem
-faixas (posterização) nos degradês; com 256 a reconstrução é praticamente igual à original. Já o
-erro topológico \emph{aumenta} com a grade (média de $0{,}036$ para $0{,}149$): quanto mais
-neurônios, mais a grade 2D precisa se dobrar para cobrir a nuvem de cores 3D. Em compensação, a
-paleta do SOM sai organizada, com cores parecidas lado a lado (Figura~\ref{fig:som-por}).
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.92\linewidth]{figures/som_curvas.png}
-\caption{Desempenho do SOM em função do tamanho da grade, nas cinco imagens.}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{figures/por_do_sol/som_grade.png}
-\caption{SOM no \texttt{por\_do\_sol}: reconstruções e paletas (na posição da grade).}
-\label{fig:som-por}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{figures/campo/som_grade.png}
-\caption{SOM no \texttt{campo}.}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{figures/praia/som_grade.png}
-\caption{SOM na \texttt{praia}.}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{figures/tintas/som_grade.png}
-\caption{SOM nas \texttt{tintas}, a imagem mais difícil (cores espalhadas por todo o cubo RGB).}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{figures/arara/som_grade.png}
-\caption{SOM na \texttt{arara}.}
-\end{figure}
-
-\section*{2. Growing Neural Gas (GNG)}
-
-O GNG foi implementado do zero (Fritzke, 1995). A rede começa com 2 neurônios; a cada pixel, o
-vencedor $s_1$ e seus vizinhos são movidos em direção à amostra (taxas $\varepsilon_b$ e
-$\varepsilon_n$), a aresta $s_1$--$s_2$ é criada ou renovada, e arestas com idade maior que
-$a_{\max}$ são removidas. A cada $\lambda$ iterações é inserido um neurônio entre o de maior erro
-acumulado e seu vizinho de maior erro ($\alpha=0{,}5$, $d=0{,}995$). O treino dura 2 épocas
-($\approx 270\,000$ iterações): primeiro a rede cresce até o tamanho final e depois faz o ajuste fino.
 
 \begin{table}[H]
 \centering\small
 \input{tabelas/gng_resumo.tex}
-\caption{Métricas do GNG (melhor configuração de cada tamanho).}
+\caption{Resultados do GNG.}
 \label{tab:gng}
 \end{table}
 
-O PSNR médio do GNG foi de $28{,}6$ dB (16 neurônios), $34{,}7$ dB (64) e $39{,}4$ dB (256), muito
-próximo do SOM. A grande diferença está no erro topológico, que ficou sempre abaixo de $0{,}015$
-(média de $0{,}004$ a $0{,}009$). Como as arestas ligam exatamente o 1º e o 2º BMU de cada pixel, a
-topologia do grafo acompanha a distribuição real das cores (Figura~\ref{fig:topo}). A paleta, por
-outro lado, não tem ordem visual, pois os neurônios ficam na ordem em que foram inseridos.
-
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.92\linewidth]{figures/gng_curvas.png}
-\caption{Desempenho do GNG em função do número de neurônios. Atenção à escala do erro
-topológico: cerca de 15 vezes menor que a do SOM.}
+\includegraphics[width=\linewidth]{figures/comparacao_media.png}
+\caption{Média das cinco imagens (as barras vão do pior ao melhor caso). Na qualidade (PSNR) as
+curvas praticamente se sobrepõem; no erro topológico o GNG fica muito abaixo do SOM.}
+\label{fig:comp}
 \end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{figures/por_do_sol/gng_grade.png}
-\caption{GNG no \texttt{por\_do\_sol}: reconstruções e paletas (na ordem de inserção).}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{figures/campo/gng_grade.png}
-\caption{GNG no \texttt{campo}.}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{figures/praia/gng_grade.png}
-\caption{GNG na \texttt{praia}.}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{figures/tintas/gng_grade.png}
-\caption{GNG nas \texttt{tintas}.}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{figures/arara/gng_grade.png}
-\caption{GNG na \texttt{arara}.}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\begin{subfigure}{0.48\linewidth}\includegraphics[width=\linewidth]{figures/por_do_sol/som_8x8_rgb.png}
-\caption{SOM $8\times8$: a grade se dobra para cobrir as cores.}\end{subfigure}
-\hfill
-\begin{subfigure}{0.48\linewidth}\includegraphics[width=\linewidth]{figures/por_do_sol/gng_64n_rgb.png}
-\caption{GNG com 64 neurônios: o grafo segue as cores.}\end{subfigure}
-\caption{Topologia das redes no espaço RGB (\texttt{por\_do\_sol}).}
-\label{fig:topo}
-\end{figure}
-
-\section*{3. Ajuste de Hiperparâmetros}
-
-\begin{table}[H]
-\centering\small
-\input{tabelas/hiperparametros.tex}
-\caption{Efeito das configurações: médias nas 15 combinações (5 imagens $\times$ 3 tamanhos) e
-em quantas delas cada configuração teve o menor erro.}
-\label{tab:hiper}
-\end{table}
-
-No SOM, a configuração B (vizinhança final menor) teve o menor EQ em todos os 15 casos, mas o
-maior ET médio: sem a vizinhança puxando os neurônios, o SOM se comporta como um $k$-means e o mapa
-se desorganiza. A A (vizinhança final maior) preserva melhor a topologia, e a C (vizinhança
-inicial menor) foi a pior nos dois erros, porque a grade não consegue se desdobrar no início do
-treino. No GNG, taxas menores (B) deram o menor EQ na maioria dos casos, e inserir neurônios com
-menos frequência (C, $\lambda$ maior) deu o menor ET, pois cada neurônio novo tem mais tempo para
-se encaixar antes do próximo.
-
-\section*{4. Análise Comparativa}
 
 \begin{table}[H]
 \centering\small
 \input{tabelas/comparacao.tex}
-\caption{Comparação direta SOM $\times$ GNG (melhor configuração de cada).}
+\caption{Comparação direta SOM $\times$ GNG, com o mesmo número de neurônios.}
 \label{tab:comp}
 \end{table}
 
-Na qualidade da reconstrução os dois modelos praticamente empatam: a diferença de PSNR nunca passa
-de $0{,}6$ dB e as médias ficam a menos de $0{,}25$ dB uma da outra. Esse empate, porém, só acontece
-porque a melhor configuração do SOM foi sempre a B; com $\sigma_N=1{,}0$ (A ou C) o GNG tem EQ menor
-em todos os casos. Na preservação topológica a diferença é grande: o ET médio do SOM é de 7 a 18
-vezes o do GNG. Ou seja, no SOM é preciso escolher entre fidelidade de cor e organização do mapa,
-enquanto o GNG consegue as duas coisas.
+\begin{table}[H]
+\centering\small
+\input{tabelas/hiperparametros.tex}
+\caption{Efeito das configurações A, B e C: médias nas 15 combinações (5 imagens $\times$ 3
+tamanhos) e em quantas delas cada configuração teve o menor erro.}
+\label{tab:hiper}
+\end{table}
 
-A dificuldade de cada imagem depende de quão espalhadas estão suas cores no espaço RGB: o
-\texttt{por\_do\_sol}, cujas cores formam praticamente uma curva do preto ao laranja, chegou a 44 dB
-com 256 cores; as \texttt{tintas}, com cores de todos os matizes, ficaram em 34 dB.
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{som_grade.png}
+\includegraphics[width=\linewidth]{gng_grade.png}
+\caption{\texttt{por\_do\_sol}: reconstruções com 16, 64 e 256 cores e as paletas aprendidas. Na
+paleta do SOM as cores estão na posição da grade (degradê); na do GNG, na ordem de inserção.}
+\label{fig:por}
+\end{figure}
 
-Em resumo, com 256 neurônios ambos os modelos produzem imagens praticamente indistinguíveis da
-original. Para a compressão em si, o GNG é a melhor escolha, pois atinge a mesma fidelidade
-preservando a topologia; o SOM é mais útil quando se deseja uma paleta organizada em grade, fácil
-de visualizar e interpretar.
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.40\linewidth}\includegraphics[width=\linewidth]{som_8x8_mapa.png}
+\caption{SOM $8\times8$: pesos na grade e U-Matrix.}\end{subfigure}
+\hfill
+\begin{subfigure}{0.29\linewidth}\includegraphics[width=\linewidth]{som_8x8_rgb.png}
+\caption{SOM $8\times8$ no espaço RGB.}\end{subfigure}
+\hfill
+\begin{subfigure}{0.29\linewidth}\includegraphics[width=\linewidth]{gng_64n_rgb.png}
+\caption{GNG com 64 neurônios.}\end{subfigure}
+\caption{Topologia aprendida (\texttt{por\_do\_sol}): a grade do SOM precisa se dobrar para cobrir
+as cores, enquanto o grafo do GNG segue a forma da nuvem de pixels.}
+\label{fig:topo}
+\end{figure}
+
+\section{Discussão}
+
+\paragraph{Tamanho da rede.} Nos dois modelos, aumentar o número de neurônios reduz o erro de
+quantização aproximadamente pela metade a cada salto, e o PSNR médio sobe cerca de 5--6 dB
+($\approx 28{,}5 \to 34{,}5 \to 39{,}5$ dB). Com 16 cores os degradês viram \emph{faixas}
+(posterização); com 256 a imagem fica praticamente igual à original (Figura~\ref{fig:por}).
+
+\paragraph{Dificuldade de cada imagem.} Depende de quão espalhadas estão as cores no espaço RGB.
+O \texttt{por\_do\_sol} foi a mais fácil (44 dB com 256 cores), pois suas cores formam quase uma
+curva do preto ao laranja. As \texttt{tintas} foram a mais difícil (34 dB), com matizes saturados
+espalhados por todo o cubo RGB.
+
+\paragraph{SOM $\times$ GNG.} Na qualidade os dois praticamente empatam: a diferença de PSNR nunca
+passa de $0{,}6$ dB e as médias ficam a menos de $0{,}25$ dB (Tabela~\ref{tab:comp}). Já no erro
+topológico a diferença é grande: o do SOM é, em média, de 7 a 18 vezes o do GNG e cresce com o
+tamanho da grade (Figura~\ref{fig:comp}). No GNG as arestas ligam exatamente o 1º e o 2º BMU de
+cada pixel, então a topologia acompanha os dados; no SOM a grade 2D precisa se dobrar para cobrir
+uma nuvem 3D, e cada dobra gera erro topológico (Figura~\ref{fig:topo}). Em troca, o SOM entrega
+uma paleta organizada, com cores parecidas lado a lado.
+
+\paragraph{O compromisso no SOM.} O empate em qualidade só acontece porque a melhor configuração do
+SOM foi sempre a B ($\sigma_N=0{,}5$, Tabela~\ref{tab:hiper}). Com a vizinhança final pequena, os
+neurônios ficam livres para se ajustar às cores (o SOM vira quase um $k$-means), o que reduz o EQ
+mas desorganiza o mapa: B teve o maior ET médio entre A e B. Com $\sigma_N=1{,}0$ (A) o mapa fica
+mais ordenado, mas o EQ piora e o GNG passa a ser melhor em todos os casos. Começar com vizinhança
+pequena (C) foi o pior nos dois erros, pois a grade não chega a se desdobrar no início do treino.
+
+\paragraph{Hiperparâmetros do GNG.} Taxas menores (B) deram o menor EQ na maioria dos casos, pois
+os neurônios se acomodam com mais precisão depois que a rede para de crescer. Inserir neurônios com
+menos frequência (C, $\lambda$ maior) deu o menor ET, pois cada neurônio novo tem tempo de se
+encaixar antes do próximo.
+
+\paragraph{Uso dos neurônios.} Quase todos os neurônios viraram a cor de algum pixel. As poucas
+exceções (por exemplo, o SOM $16\times16$ usou 245 cores nas \texttt{tintas}) são neurônios que
+ficaram em regiões vazias do espaço de cores, entre grupos de pixels.
+
+\section{Conclusão}
+As duas redes comprimem a paleta de dezenas de milhares de cores para 16--256 cores com boa
+qualidade, e com 256 neurônios o resultado é praticamente indistinguível da original. O GNG é a
+melhor escolha para a compressão em si, pois atinge a mesma fidelidade preservando a topologia; o
+SOM só alcança essa fidelidade abrindo mão da organização do mapa, mas é útil quando se quer uma
+paleta ordenada e fácil de visualizar. Em ambos, os hiperparâmetros controlam o equilíbrio entre
+representar bem as cores (EQ) e preservar a vizinhança (ET).
+
+\appendix
+\section{Reconstruções das outras imagens}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\linewidth]{figures/campo/som_grade.png}
+\includegraphics[width=0.92\linewidth]{figures/campo/gng_grade.png}
+\caption{\texttt{campo} (acima SOM, abaixo GNG).}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\linewidth]{figures/praia/som_grade.png}
+\includegraphics[width=0.92\linewidth]{figures/praia/gng_grade.png}
+\caption{\texttt{praia} (acima SOM, abaixo GNG).}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\linewidth]{figures/tintas/som_grade.png}
+\includegraphics[width=0.92\linewidth]{figures/tintas/gng_grade.png}
+\caption{\texttt{tintas} (acima SOM, abaixo GNG).}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\linewidth]{figures/arara/som_grade.png}
+\includegraphics[width=0.92\linewidth]{figures/arara/gng_grade.png}
+\caption{\texttt{arara} (acima SOM, abaixo GNG).}
+\end{figure}
 
 \end{document}
