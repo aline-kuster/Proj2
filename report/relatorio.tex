@@ -220,4 +220,69 @@ cores em 3D, e cada dobra cria regiões em que o 2º BMU fica longe na grade.
 compromisso. Com $\sigma_N=0{,}5$, no fim do treino a vizinhança efetiva quase desaparece e o
 batch SOM passa a se comportar como um $k$-means: cada neurônio se ajusta ao seu grupo de pixels
 sem ser puxado pelos vizinhos. Isso reduz o erro de quantização, mas desorganiza o mapa -- B teve
-o \emph{maior} err
+o \emph{maior} erro topológico em quase todos os casos. Com $\sigma_N=1{,}0$, o mapa fica mais
+ordenado, mas os neurônios são puxados para regiões intermediárias entre grupos de cor, o que
+piora a quantização. Ou seja, no SOM não dá para ter os dois ao mesmo tempo; o GNG chega ao mesmo
+erro de quantização sem abrir mão da topologia.
+
+\paragraph{Outros hiperparâmetros.}
+\begin{itemize}
+  \item \textbf{SOM, $\sigma_0$ menor (config.~C):} começar com uma vizinhança menor
+        ($\sigma_0=L/4$) piorou o erro de quantização na maioria dos casos e, em geral, também o
+        erro topológico: com pouca vizinhança no início, a grade não chega a se
+        ``desdobrar'' sobre todas as cores antes de começar o ajuste fino, e algumas torções ficam
+        congeladas. Um $\sigma_0$ grande é importante para a organização global do mapa.
+  \item \textbf{GNG, taxas menores (config.~B):} com o treino de 2 épocas, as taxas pequenas
+        ($\varepsilon_b=0{,}05$) deram o menor erro de quantização em quase todos os casos: depois
+        que a rede termina de crescer, passos menores deixam os neurônios se acomodarem com mais
+        precisão, em vez de ficarem ``pulando'' entre pixels.
+  \item \textbf{GNG, $\lambda$ maior (config.~C):} inserir neurônios com menos frequência deu, em
+        geral, o menor erro topológico, porque cada neurônio novo tem mais tempo para se encaixar
+        e formar arestas corretas antes da próxima inserção.
+\end{itemize}
+
+\paragraph{Uso dos neurônios.} Quase todos os neurônios viraram cor de algum pixel; a única
+exceção relevante foi o GNG B com 256 neurônios na \texttt{astronaut}, com 251 cores usadas
+(alguns neurônios ficaram em regiões sem pixels depois do ajuste fino).
+
+\paragraph{Outras imagens.} Em \texttt{coffee} e \texttt{chelsea} (Apêndice~\ref{ap:outras}) as
+mesmas tendências se repetem: o erro cai com o tamanho da rede, SOM (config.~B) e GNG empatam na
+qualidade da reconstrução, o GNG tem erro topológico muito menor, e no SOM a config.~B é a de
+menor erro de quantização e maior erro topológico.
+
+\section{Conclusão}
+As duas redes conseguem comprimir a paleta de dezenas de milhares de cores para 16--256 cores
+mantendo boa qualidade visual, e com 256 neurônios o resultado é praticamente indistinguível da
+imagem original. Na qualidade da reconstrução, o SOM só alcança o GNG quando a vizinhança final é
+reduzida, e aí perde a organização do mapa. O GNG obtém o mesmo erro de quantização preservando a
+topologia muito melhor, por isso é a escolha mais adequada para a compressão em si. O SOM, por
+outro lado, entrega uma paleta organizada em uma grade 2D (cores parecidas lado a lado), útil
+quando se quer visualizar ou indexar o espaço de cores. Em ambos, os hiperparâmetros controlam o
+equilíbrio entre representar bem os dados (EQ) e preservar a vizinhança (ET).
+
+\appendix
+\section{Resultados nas outras imagens}\label{ap:outras}
+\begin{table}[H]
+\centering\footnotesize
+\input{tabelas/coffee_resultados.tex}
+\caption{Imagem \texttt{coffee}.}
+\end{table}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figures/coffee/som_grade.png}
+\includegraphics[width=\linewidth]{figures/coffee/gng_grade.png}
+\caption{Reconstruções da imagem \texttt{coffee}.}
+\end{figure}
+\begin{table}[H]
+\centering\footnotesize
+\input{tabelas/chelsea_resultados.tex}
+\caption{Imagem \texttt{chelsea}.}
+\end{table}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figures/chelsea/som_grade.png}
+\includegraphics[width=\linewidth]{figures/chelsea/gng_grade.png}
+\caption{Reconstruções da imagem \texttt{chelsea}.}
+\end{figure}
+
+\end{document}
