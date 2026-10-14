@@ -1,0 +1,12 @@
+[project]
+name = "quantizacao-cores"
+version = "0.1.0"
+description = "Projeto 2 - Aprendizado Não Supervisionado: quantização de cores com SOM e GNG"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.8",
+    "numpy>=1.26",
+    "pillow>=10.0",
+    "xpysom>=1.0.7",
+]
