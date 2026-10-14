@@ -8,19 +8,21 @@
 \usepackage{float}
 \usepackage{subcaption}
 \usepackage[margin=2.2cm]{geometry}
-\usepackage{hyperref}
+\usepackage[hidelinks]{hyperref}
 
-\graphicspath{{figures/astronaut/}{./}}
-
-\title{Projeto 2 -- Aprendizado Não Supervisionado\\[2pt]
-\large Quantização de Cores com Self-Organizing Maps (SOM) e Growing Neural Gas (GNG)}
-\author{Aline Breda Kuster \quad (RA: \textit{preencher})\\[2pt]
-\small Disciplina: \textit{preencher} \\
-\small Repositório: \url{https://github.com/aline-kuster/Proj2}}
-\date{\today}
+\graphicspath{{figures/por_do_sol/}{./}}
 
 \begin{document}
-\maketitle
+
+\begin{center}
+{\LARGE\bfseries Projeto 2: Quantização de Cores com Redes SOM e GNG}\\[6pt]
+{\large Disciplina: Introdução às Redes Neurais Artificiais}\\[4pt]
+\textbf{Autora:} Aline Breda Kuster (RA: 168.495)\\[2pt]
+\textbf{Repositório:} \href{https://github.com/aline-kuster/Proj2}{\texttt{https://github.com/aline-kuster/Proj2}}
+\end{center}
+\vspace{-4pt}
+\noindent\rule{\linewidth}{0.4pt}
+\vspace{4pt}
 
 \section{Objetivo}
 Reduzir drasticamente a paleta de cores de uma imagem (compressão) usando aprendizado
@@ -33,17 +35,20 @@ se adapta aos dados), e avaliando as redes pelo erro de quantização e pelo err
 Cada imagem é carregada em RGB e redimensionada (filtro Lanczos, mantendo a proporção) para no
 máximo $450$ pixels de lado, para manter o treino viável. Todos os pixels são extraídos e
 normalizados, de modo que cada pixel vira uma amostra $\mathbf{x} = (R, G, B) \in [0,1]^3$: a
-imagem passa a ser um conjunto de dados 3D. Foram usadas três imagens:
+imagem passa a ser um conjunto de dados 3D. Foram usadas quatro imagens com características de
+cor bem diferentes:
 
 \begin{table}[H]
 \centering
-\begin{tabular}{lccc}
+\small
+\begin{tabular}{llccc}
 \toprule
-Imagem & Dimensão & Pixels (amostras) & Cores distintas \\
+Imagem & Conteúdo & Dimensão & Pixels & Cores distintas \\
 \midrule
-\texttt{astronaut} & $450\times450$ & $202\,500$ & $93\,663$ \\
-\texttt{coffee}    & $450\times300$ & $135\,000$ & $62\,853$ \\
-\texttt{chelsea}   & $450\times299$ & $134\,550$ & $63\,505$ \\
+\texttt{por\_do\_sol} & degradê laranja e silhuetas escuras & $450\times300$ & $135\,000$ & $36\,390$ \\
+\texttt{campo}        & céu azul, nuvens brancas e grama     & $450\times299$ & $134\,550$ & $38\,124$ \\
+\texttt{praia}        & céu, mar verde-azulado e areia       & $300\times450$ & $135\,000$ & $61\,180$ \\
+\texttt{tintas}       & tintas de todas as cores (arco-íris) & $450\times300$ & $135\,000$ & $92\,991$ \\
 \bottomrule
 \end{tabular}
 \caption{Imagens utilizadas após o redimensionamento.}
@@ -74,8 +79,8 @@ topológicos são movidos em direção à amostra (taxas $\varepsilon_b$ e $\var
 $s_1$--$s_2$ é criada ou tem a idade zerada, e arestas com idade maior que $a_{\max}$ são
 removidas. A cada $\lambda$ iterações um neurônio é inserido entre o neurônio de maior erro
 acumulado e o seu vizinho de maior erro ($\alpha=0{,}5$, $d=0{,}995$). O treino dura 2 épocas
-(por exemplo, $405\,000$ iterações na \texttt{astronaut}): a primeira parte serve para a rede
-crescer até o tamanho final e o restante para o ajuste fino.
+($\approx 270\,000$ iterações): a primeira parte serve para a rede crescer até o tamanho final e
+o restante para o ajuste fino.
 
 \paragraph{Ajuste de hiperparâmetros.} Para cada tamanho de rede foram testadas três
 configurações. A melhor (menor erro de quantização) é usada nas figuras.
@@ -113,11 +118,14 @@ pelos pesos $\mathbf{w}_{c(\mathbf{x})}$. Em seguida a matriz da imagem é recon
 
 \section{Resultados}
 
+A imagem \texttt{por\_do\_sol} é usada como exemplo principal (com todas as figuras detalhadas);
+as tabelas completas das outras três imagens estão no Apêndice~\ref{ap:outras}.
+
 \begin{table}[H]
 \centering
 \footnotesize
-\input{tabelas/astronaut_resultados.tex}
-\caption{Todas as execuções na imagem \texttt{astronaut} (EQ = erro de quantização,
+\input{tabelas/por_do_sol_resultados.tex}
+\caption{Todas as execuções na imagem \texttt{por\_do\_sol} (EQ = erro de quantização,
 ET = erro topológico).}
 \label{tab:res}
 \end{table}
@@ -125,8 +133,8 @@ ET = erro topológico).}
 \begin{table}[H]
 \centering
 \small
-\input{tabelas/astronaut_comparacao.tex}
-\caption{Comparação direta SOM $\times$ GNG na \texttt{astronaut}, com o mesmo número de
+\input{tabelas/por_do_sol_comparacao.tex}
+\caption{Comparação direta SOM $\times$ GNG na \texttt{por\_do\_sol}, com o mesmo número de
 neurônios (melhor configuração de cada).}
 \label{tab:comp}
 \end{table}
@@ -140,14 +148,15 @@ neurônios (melhor configuração de cada).}
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
 Imagem & SOM & GNG & SOM & GNG & SOM & GNG \\
 \midrule
-\texttt{astronaut} & 27,49 & 27,50 & 33,49 & 33,52 & 38,12 & 37,79 \\
-\texttt{coffee}    & 29,71 & 29,62 & 35,49 & 35,71 & 40,52 & 40,32 \\
-\texttt{chelsea}   & 30,94 & 30,82 & 36,07 & 36,12 & 40,32 & 40,45 \\
+\texttt{por\_do\_sol} & 33,39 & 33,31 & 39,01 & 39,29 & 44,23 & 44,12 \\
+\texttt{campo}        & 30,58 & 31,17 & 37,28 & 37,86 & 43,12 & 43,01 \\
+\texttt{praia}        & 29,16 & 29,29 & 35,14 & 35,36 & 39,95 & 39,80 \\
+\texttt{tintas}       & 22,84 & 23,08 & 28,93 & 28,96 & 33,84 & 34,08 \\
 \midrule
-\textbf{Média}     & \textbf{29,38} & \textbf{29,31} & \textbf{35,02} & \textbf{35,12} & \textbf{39,65} & \textbf{39,52} \\
+\textbf{Média}        & \textbf{28,99} & \textbf{29,21} & \textbf{35,09} & \textbf{35,37} & \textbf{40,28} & \textbf{40,25} \\
 \bottomrule
 \end{tabular}
-\caption{PSNR (dB) da melhor configuração de cada rede, nas três imagens.}
+\caption{PSNR (dB) da melhor configuração de cada rede, nas quatro imagens.}
 \label{tab:psnr}
 \end{table}
 
@@ -155,7 +164,7 @@ Imagem & SOM & GNG & SOM & GNG & SOM & GNG \\
 \centering
 \includegraphics[width=\linewidth]{som_grade.png}
 \includegraphics[width=\linewidth]{gng_grade.png}
-\caption{\texttt{astronaut}: imagens reconstruídas com a melhor configuração de cada rede e as
+\caption{\texttt{por\_do\_sol}: imagens reconstruídas com a melhor configuração de cada rede e as
 paletas aprendidas. Na paleta do SOM os pesos estão na posição da grade (cores parecidas ficam
 vizinhas); na do GNG, na ordem em que os neurônios foram inseridos.}
 \end{figure}
@@ -163,13 +172,13 @@ vizinhas); na do GNG, na ordem em que os neurônios foram inseridos.}
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.75\linewidth]{som_16x16_comparacao.png}
-\caption{SOM $16\times16$: original, imagem quantizada e paleta extraída (256 cores).}
+\caption{SOM $16\times16$: original, imagem quantizada e paleta extraída.}
 \end{figure}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{erros_melhores.png}
-\caption{Erros da melhor configuração por rede na \texttt{astronaut} (vermelho: SOM; azul: GNG).}
+\caption{Erros da melhor configuração por rede na \texttt{por\_do\_sol} (vermelho: SOM; azul: GNG).}
 \end{figure}
 
 \begin{figure}[H]
@@ -182,107 +191,138 @@ vizinhas); na do GNG, na ordem em que os neurônios foram inseridos.}
 \caption{GNG com 64 neurônios no espaço RGB.}\end{subfigure}
 \begin{subfigure}{0.49\linewidth}\includegraphics[width=\linewidth]{gng_256n_rgb.png}
 \caption{GNG com 256 neurônios no espaço RGB.}\end{subfigure}
-\caption{Topologia aprendida pelas redes (\texttt{astronaut}).}
+\caption{Topologia aprendida pelas redes (\texttt{por\_do\_sol}). As cores da imagem formam
+praticamente uma ``curva'' no espaço RGB, do preto ao laranja, com um ramo de tons acinzentados.}
 \end{figure}
 
 \begin{figure}[H]
 \centering
 \begin{subfigure}{0.49\linewidth}\includegraphics[width=\linewidth]{som_16x16_curvas.png}\end{subfigure}
 \begin{subfigure}{0.49\linewidth}\includegraphics[width=\linewidth]{gng_256n_curvas.png}\end{subfigure}
-\caption{Erro de quantização ao longo do treino para as três configurações (\texttt{astronaut}).}
+\caption{Erro de quantização ao longo do treino para as três configurações (\texttt{por\_do\_sol}).}
 \end{figure}
 
 \section{Discussão}
 
 \paragraph{Tamanho da rede.} Nos dois modelos, aumentar o número de neurônios reduz o erro de
-quantização aproximadamente pela metade a cada salto (\texttt{astronaut} -- SOM:
-$0{,}060 \to 0{,}030 \to 0{,}017$; GNG: $0{,}061 \to 0{,}030 \to 0{,}017$) e aumenta o PSNR médio
-em cerca de $5$--$6$ dB (Tabela~\ref{tab:psnr}). Com 16 cores aparecem \emph{faixas}
-(posterização) no fundo e no rosto e o emblema perde o roxo; com 256 cores a imagem fica
-visualmente muito próxima da original, usando menos de $0{,}3\%$ das cores distintas.
+quantização aproximadamente pela metade a cada salto (\texttt{por\_do\_sol} -- SOM:
+$0{,}031 \to 0{,}016 \to 0{,}009$; GNG: $0{,}031 \to 0{,}016 \to 0{,}009$) e aumenta o PSNR médio
+em cerca de $5$--$6$ dB (Tabela~\ref{tab:psnr}). Com 16 cores o degradê do céu vira
+\emph{faixas} bem visíveis (posterização); com 64 elas ficam suaves; com 256 a imagem é
+praticamente indistinguível da original, usando menos de $1\%$ das cores distintas.
+
+\paragraph{Dificuldade de cada imagem.} A qualidade depende de quão espalhadas estão as cores no
+espaço RGB. O \texttt{por\_do\_sol} foi a imagem mais fácil (44 dB com 256 cores): suas cores
+ficam ao longo de uma ``curva'' do preto ao laranja, que poucos neurônios conseguem cobrir.
+A \texttt{tintas} foi a mais difícil (34 dB com 256 cores e erro de quantização mais de 3 vezes
+maior): ela tem quase $93$ mil cores distintas, com matizes saturados espalhados por todo o cubo
+RGB, então cada neurônio precisa representar uma região muito maior.
 
 \paragraph{SOM $\times$ GNG: qualidade da reconstrução.} Comparando a melhor configuração de cada
-modelo, os dois praticamente empatam: a diferença de PSNR nunca passa de $0{,}4$ dB e as médias
-ficam dentro de $0{,}15$ dB (Tabela~\ref{tab:psnr}), uma diferença imperceptível a olho nu.
+modelo, os dois praticamente empatam: a diferença de PSNR nunca passa de $0{,}6$ dB e as médias
+ficam dentro de $0{,}3$ dB (Tabela~\ref{tab:psnr}) -- diferença imperceptível a olho nu. Em geral
+o GNG foi um pouco melhor com 16 e 64 neurônios e o SOM com 256, sempre por margens pequenas.
 Esse empate, porém, só acontece porque a melhor configuração do SOM foi sempre a B, com
 vizinhança final pequena ($\sigma_N=0{,}5$). Com $\sigma_N=1{,}0$ (configurações A e C), o GNG
-tem erro de quantização menor que o SOM em todos os tamanhos e nas três imagens (por exemplo,
-\texttt{astronaut} com 16 neurônios: $0{,}0607$ no GNG contra $0{,}0710$ no SOM A).
+tem erro de quantização menor que o SOM em todos os tamanhos e nas quatro imagens (por exemplo,
+\texttt{tintas} com 16 neurônios: $0{,}106$ no GNG contra $0{,}124$ no SOM A).
 
-\paragraph{SOM $\times$ GNG: preservação topológica.} Aqui a diferença é grande: o erro topológico
-do GNG ficou entre $0{,}0002$ e $0{,}02$, enquanto o do SOM ficou entre $0{,}008$ e $0{,}23$ --
-tipicamente de 10 a 100 vezes maior. No GNG as arestas são criadas justamente entre o 1º e o 2º
-BMU (regra de Hebb competitiva), então a topologia da rede acompanha a distribuição real das
-cores. No SOM a topologia é imposta: uma grade 2D precisa se ``dobrar'' para cobrir uma nuvem de
-cores em 3D, e cada dobra cria regiões em que o 2º BMU fica longe na grade.
+\paragraph{SOM $\times$ GNG: preservação topológica.} Aqui a diferença é grande. Na melhor
+configuração, o erro topológico do GNG ficou sempre abaixo de $0{,}01$, enquanto o do SOM chegou a
+$0{,}21$ -- na maioria dos casos, mais de 10 vezes maior. No GNG as arestas são criadas
+justamente entre o 1º e o 2º BMU (regra de Hebb competitiva), então a topologia da rede acompanha
+a distribuição real das cores. No SOM a topologia é imposta: uma grade 2D precisa se ``dobrar''
+para cobrir a nuvem de cores, e cada dobra cria regiões em que o 2º BMU fica longe na grade. A
+exceção são redes pequenas em imagens ``simples'': no \texttt{por\_do\_sol} com $4\times4$, o SOM
+teve erro topológico zero, porque com poucos neurônios a grade consegue se estender sobre a curva
+de cores sem se dobrar.
 
 \paragraph{O compromisso entre os dois erros no SOM.} A configuração B mostra bem esse
 compromisso. Com $\sigma_N=0{,}5$, no fim do treino a vizinhança efetiva quase desaparece e o
 batch SOM passa a se comportar como um $k$-means: cada neurônio se ajusta ao seu grupo de pixels
-sem ser puxado pelos vizinhos. Isso reduz o erro de quantização, mas desorganiza o mapa -- B teve
-o \emph{maior} erro topológico em quase todos os casos. Com $\sigma_N=1{,}0$, o mapa fica mais
-ordenado, mas os neurônios são puxados para regiões intermediárias entre grupos de cor, o que
-piora a quantização. Ou seja, no SOM não dá para ter os dois ao mesmo tempo; o GNG chega ao mesmo
-erro de quantização sem abrir mão da topologia.
+sem ser puxado pelos vizinhos. Isso reduz o erro de quantização -- B foi a melhor em todas as 12
+combinações de imagem e tamanho -- mas desorganiza o mapa: B teve o maior erro topológico em 9 dos
+12 casos. Com $\sigma_N=1{,}0$ (config.~A), o mapa fica mais ordenado (erro topológico menor que o
+de B em 10 dos 12 casos), mas os neurônios são puxados para regiões intermediárias entre grupos de
+cor, o que piora a quantização. Ou seja, no SOM não dá para ter os dois ao mesmo tempo; o GNG chega
+ao mesmo erro de quantização sem abrir mão da topologia.
 
 \paragraph{Outros hiperparâmetros.}
 \begin{itemize}
   \item \textbf{SOM, $\sigma_0$ menor (config.~C):} começar com uma vizinhança menor
-        ($\sigma_0=L/4$) piorou o erro de quantização na maioria dos casos e, em geral, também o
-        erro topológico: com pouca vizinhança no início, a grade não chega a se
+        ($\sigma_0=L/4$) piorou, em relação à config.~A, o erro de quantização em 8 e o erro
+        topológico em 10 dos 12 casos. Com pouca vizinhança no início, a grade não chega a se
         ``desdobrar'' sobre todas as cores antes de começar o ajuste fino, e algumas torções ficam
-        congeladas. Um $\sigma_0$ grande é importante para a organização global do mapa.
-  \item \textbf{GNG, taxas menores (config.~B):} com o treino de 2 épocas, as taxas pequenas
-        ($\varepsilon_b=0{,}05$) deram o menor erro de quantização em quase todos os casos: depois
-        que a rede termina de crescer, passos menores deixam os neurônios se acomodarem com mais
-        precisão, em vez de ficarem ``pulando'' entre pixels.
-  \item \textbf{GNG, $\lambda$ maior (config.~C):} inserir neurônios com menos frequência deu, em
-        geral, o menor erro topológico, porque cada neurônio novo tem mais tempo para se encaixar
-        e formar arestas corretas antes da próxima inserção.
+        congeladas (no \texttt{por\_do\_sol} $4\times4$, o ET chegou a $0{,}39$). Um $\sigma_0$
+        grande é importante para a organização global do mapa.
+  \item \textbf{GNG, taxas menores (config.~B):} deram o menor erro de quantização em 8 dos 12
+        casos: depois que a rede termina de crescer, passos menores deixam os neurônios se
+        acomodarem com mais precisão, em vez de ficarem ``pulando'' entre pixels.
+  \item \textbf{GNG, mudanças mais lentas preservam a topologia:} o menor erro topológico foi
+        sempre de uma das configurações B (taxas menores) ou C ($\lambda$ maior). Em ambas a rede
+        muda mais devagar, então as arestas têm tempo de se formar entre os neurônios certos.
 \end{itemize}
 
-\paragraph{Uso dos neurônios.} Quase todos os neurônios viraram cor de algum pixel; a única
-exceção relevante foi o GNG B com 256 neurônios na \texttt{astronaut}, com 251 cores usadas
-(alguns neurônios ficaram em regiões sem pixels depois do ajuste fino).
-
-\paragraph{Outras imagens.} Em \texttt{coffee} e \texttt{chelsea} (Apêndice~\ref{ap:outras}) as
-mesmas tendências se repetem: o erro cai com o tamanho da rede, SOM (config.~B) e GNG empatam na
-qualidade da reconstrução, o GNG tem erro topológico muito menor, e no SOM a config.~B é a de
-menor erro de quantização e maior erro topológico.
+\paragraph{Uso dos neurônios.} Na maioria dos casos todos os neurônios viraram a cor de algum
+pixel. As exceções mais fortes aparecem no \texttt{campo}, que tem poucas cores bem separadas
+(azul, branco e verde): o GNG B usou só 59 de 64 e 214 de 256 neurônios. Com taxas pequenas,
+neurônios inseridos em regiões vazias entre esses grupos se movem muito pouco e nunca chegam a
+vencer nenhum pixel. No SOM $16\times16$ também sobram alguns neurônios (252--254 no
+\texttt{campo} e 245--248 na \texttt{tintas}): por causa da vizinhança, alguns ficam ``presos''
+entre grupos de cor, em regiões onde não há pixels.
 
 \section{Conclusão}
 As duas redes conseguem comprimir a paleta de dezenas de milhares de cores para 16--256 cores
 mantendo boa qualidade visual, e com 256 neurônios o resultado é praticamente indistinguível da
-imagem original. Na qualidade da reconstrução, o SOM só alcança o GNG quando a vizinhança final é
-reduzida, e aí perde a organização do mapa. O GNG obtém o mesmo erro de quantização preservando a
-topologia muito melhor, por isso é a escolha mais adequada para a compressão em si. O SOM, por
-outro lado, entrega uma paleta organizada em uma grade 2D (cores parecidas lado a lado), útil
-quando se quer visualizar ou indexar o espaço de cores. Em ambos, os hiperparâmetros controlam o
-equilíbrio entre representar bem os dados (EQ) e preservar a vizinhança (ET).
+imagem original. A dificuldade da tarefa depende de quão espalhadas estão as cores da imagem: um
+pôr do sol (cores ao longo de uma curva) é muito mais fácil de quantizar que uma imagem com todas
+as cores do arco-íris. Na qualidade da reconstrução, o SOM só alcança o GNG quando a vizinhança
+final é reduzida, e aí perde a organização do mapa; o GNG obtém o mesmo erro de quantização
+preservando a topologia muito melhor, sendo a escolha mais adequada para a compressão em si. O
+SOM, por outro lado, entrega uma paleta organizada em uma grade 2D (cores parecidas lado a lado),
+útil quando se quer visualizar ou indexar o espaço de cores. Em ambos, os hiperparâmetros
+controlam o equilíbrio entre representar bem os dados (EQ) e preservar a vizinhança (ET).
 
 \appendix
 \section{Resultados nas outras imagens}\label{ap:outras}
+
+\subsection*{Campo}
 \begin{table}[H]
 \centering\footnotesize
-\input{tabelas/coffee_resultados.tex}
-\caption{Imagem \texttt{coffee}.}
+\input{tabelas/campo_resultados.tex}
+\caption{Imagem \texttt{campo}.}
 \end{table}
 \begin{figure}[H]
 \centering
-\includegraphics[width=\linewidth]{figures/coffee/som_grade.png}
-\includegraphics[width=\linewidth]{figures/coffee/gng_grade.png}
-\caption{Reconstruções da imagem \texttt{coffee}.}
+\includegraphics[width=\linewidth]{figures/campo/som_grade.png}
+\includegraphics[width=\linewidth]{figures/campo/gng_grade.png}
+\caption{Reconstruções da imagem \texttt{campo}.}
 \end{figure}
+
+\subsection*{Praia}
 \begin{table}[H]
 \centering\footnotesize
-\input{tabelas/chelsea_resultados.tex}
-\caption{Imagem \texttt{chelsea}.}
+\input{tabelas/praia_resultados.tex}
+\caption{Imagem \texttt{praia}.}
 \end{table}
 \begin{figure}[H]
 \centering
-\includegraphics[width=\linewidth]{figures/chelsea/som_grade.png}
-\includegraphics[width=\linewidth]{figures/chelsea/gng_grade.png}
-\caption{Reconstruções da imagem \texttt{chelsea}.}
+\includegraphics[width=\linewidth]{figures/praia/som_grade.png}
+\includegraphics[width=\linewidth]{figures/praia/gng_grade.png}
+\caption{Reconstruções da imagem \texttt{praia}.}
+\end{figure}
+
+\subsection*{Tintas}
+\begin{table}[H]
+\centering\footnotesize
+\input{tabelas/tintas_resultados.tex}
+\caption{Imagem \texttt{tintas}.}
+\end{table}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figures/tintas/som_grade.png}
+\includegraphics[width=\linewidth]{figures/tintas/gng_grade.png}
+\caption{Reconstruções da imagem \texttt{tintas}.}
 \end{figure}
 
 \end{document}
